@@ -1,0 +1,116 @@
+services:
+  master1:
+    build:
+      context: .
+      target: base
+    hostname: master1
+    container_name: master1  
+    ports:
+      - "8889:8888"   
+      - "9878:9870"
+    networks:
+      - hadoopnetwork 
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs haadmin -checkHealth nn1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5   
+
+
+  master2:
+    build:
+      context: .
+      target: base
+    hostname: master2
+    container_name: master2  
+    ports:
+      - "8887:8888"   
+      - "9877:9870"
+    networks: 
+      - hadoopnetwork
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs haadmin -checkHealth nn2"]
+      interval: 15s
+      timeout: 5s
+      retries: 5   
+      
+
+
+  master3:
+    build:
+      context: .
+      target: base
+    hostname: master3
+    container_name: master3  
+    ports:
+      - "8886:8888"   
+      - "9876:9870"  
+    networks:
+      - hadoopnetwork
+    healthcheck:
+      test: ["CMD-SHELL", "hdfs haadmin -checkHealth nn3"]
+      interval: 15s
+      timeout: 5s
+      retries: 5   
+  worker:
+   build:
+    context: .
+    target: base
+   hostname: worker    
+   container_name: worker
+   networks:
+      - hadoopnetwork
+  postgres-hive:  
+    image: postgres:13
+    container_name: postgres-hive
+    hostname: postgres-hive
+    environment:
+      POSTGRES_USER: eslam
+      POSTGRES_PASSWORD: eslam
+      POSTGRES_DB: hive_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eslam -d hive_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5  
+    networks:
+      - hadoopnetwork
+
+  hive-metastore:
+    build:
+      context: .
+      target: hive
+    container_name: hive-metastore
+    hostname: hive-metastore
+    depends_on:
+      - postgres-hive
+    ports:
+      - "9083:9083"
+    networks:
+      - hadoopnetwork  
+
+  hive-server2:
+    build:
+      context: .
+      target: hive
+    container_name: hive-server2
+    hostname: hive-server2
+    depends_on:
+      - hive-metastore
+    ports:
+      - "10000:10000" 
+      - "10002:10002"
+  
+    networks:
+      - hadoopnetwork       
+
+
+volumes:
+  postgres-data:  
+networks:
+  hadoopnetwork:  
+    driver: bridge   
